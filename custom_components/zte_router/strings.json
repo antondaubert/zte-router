@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZTE Router Setup",
+        "description": "Configure your ZTE Router integration. The router must be accessible on your local network. Password is optional - the integration can work with unauthenticated API calls for read-only data.",
+        "data": {
+          "host": "Router IP Address",
+          "password": "Router Password (Optional)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the router. Please verify the IP address and ensure the router is powered on and accessible.",
+      "unknown": "An unexpected error occurred. Please check the logs."
+    },
+    "abort": {
+      "already_configured": "This router is already configured."
+    }
+  }
+}
