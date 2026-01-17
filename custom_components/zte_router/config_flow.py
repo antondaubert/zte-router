@@ -8,7 +8,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PASSWORD
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import FlowResult, AbortFlow
 import homeassistant.helpers.config_validation as cv
 
 from .api import ZTERouterAPI
@@ -41,8 +41,6 @@ class ZTERouterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not data or not any(data.values()):
                     errors["base"] = "cannot_connect"
                 else:
-                    await api.close()
-                    
                     # Create unique ID from host
                     await self.async_set_unique_id(host)
                     self._abort_if_unique_id_configured()
@@ -54,6 +52,10 @@ class ZTERouterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             CONF_PASSWORD: password,
                         },
                     )
+            except AbortFlow:
+                # Let abort flow propagate naturally
+                await api.close()
+                raise
             except Exception as err:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected error during setup: %s", err)
                 errors["base"] = "cannot_connect"
