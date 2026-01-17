@@ -163,13 +163,14 @@ class ZTERouterAPI:
                         results.append(None)
                 
                 # If we got Access Denied on multiple calls and we're using an authenticated session,
-                # the session likely expired - reset it
+                # the session likely expired - return a special marker so we can retry
                 if access_denied_count >= 2 and self.session_id != UNAUTHENTICATED_SESSION:
                     _LOGGER.info(
-                        "Session expired (Access Denied on %d calls), resetting session for re-authentication",
+                        "Session expired (Access Denied on %d calls), will attempt re-authentication and retry",
                         access_denied_count
                     )
-                    self.session_id = UNAUTHENTICATED_SESSION
+                    # Return None to signal session expiration
+                    return None
                 
                 return results
         except Exception as err:
@@ -285,6 +286,29 @@ class ZTERouterAPI:
         ]
         
         results = await self._call_api_batch(calls)
+        
+        # If results is None, session expired - immediately retry with re-authentication
+        if results is None:
+            _LOGGER.info("Session expired, re-authenticating and retrying...")
+            self.session_id = UNAUTHENTICATED_SESSION
+            
+            if self.password:
+                login_success = await self.async_login()
+                if login_success:
+                    _LOGGER.info("Re-authentication successful, retrying data fetch")
+                    # Update router_method for the retry
+                    calls[0] = ("zwrt_router.api", "router_get_status", None)
+                    # Retry the batch call
+                    results = await self._call_api_batch(calls)
+                    if results is None:
+                        _LOGGER.error("Retry failed after re-authentication")
+                        results = [None] * len(calls)
+                else:
+                    _LOGGER.error("Re-authentication failed, cannot retry")
+                    results = [None] * len(calls)
+            else:
+                _LOGGER.warning("No password configured, cannot re-authenticate")
+                results = [None] * len(calls)
         
         # Check if we're missing data after the call
         missing_data = []

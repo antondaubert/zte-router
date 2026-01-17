@@ -263,12 +263,3 @@ class ZTERouterSensor(CoordinatorEntity, SensorEntity):
             return value
         
         return None
-    
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        # Entity is available if coordinator has data and the value is not None
-        return (
-            super().available
-            and self.native_value is not None
-        )
